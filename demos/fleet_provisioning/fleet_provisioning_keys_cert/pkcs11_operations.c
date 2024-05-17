@@ -41,14 +41,16 @@
 #include "core_pki_utils.h"
 #include "mbedtls_utils.h"
 
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
+
 /* MbedTLS include. */
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/entropy.h"
-#include "mbedtls/entropy_poll.h"
+#include "entropy_poll.h"
 #include "mbedtls/error.h"
 #include "mbedtls/oid.h"
 #include "mbedtls/pk.h"
-#include "mbedtls/pk_internal.h"
+#include "pk_internal.h"
 #include "mbedtls/sha256.h"
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/x509_csr.h"
@@ -528,6 +530,37 @@ static CK_RV provisionPrivateRSAKey( CK_SESSION_HANDLE session,
 
 /*-----------------------------------------------------------*/
 
+static int randomCallback( void * pCtx,
+                           unsigned char * pRandom,
+                           size_t randomLength )
+{
+    CK_SESSION_HANDLE * p11Session = ( CK_SESSION_HANDLE * ) pCtx;
+    CK_RV res;
+    CK_FUNCTION_LIST_PTR pP11FunctionList;
+
+    res = C_GetFunctionList( &pP11FunctionList );
+
+    if( res != CKR_OK )
+    {
+        LogError( ( "Failed to generate a random number in RNG callback. Could not get a "
+                    "PKCS #11 function pointer." ) );
+    }
+    else
+    {
+        res = pP11FunctionList->C_GenerateRandom( *p11Session, pRandom, randomLength );
+
+        if( res != CKR_OK )
+        {
+            LogError( ( "Failed to generate a random number in RNG callback. "
+                        "C_GenerateRandom failed with %lu.", res ) );
+        }
+    }
+
+    return ( int ) res;
+}
+
+/*-----------------------------------------------------------*/
+
 static CK_RV provisionPrivateKey( CK_SESSION_HANDLE session,
                                   const char * privateKey,
                                   size_t privateKeyLength,
@@ -540,7 +573,8 @@ static CK_RV provisionPrivateKey( CK_SESSION_HANDLE session,
 
     mbedtls_pk_init( &mbedPkContext );
     mbedResult = mbedtls_pk_parse_key( &mbedPkContext, ( const uint8_t * ) privateKey,
-                                       privateKeyLength, NULL, 0 );
+                                       privateKeyLength, NULL, 0,
+                                       randomCallback, &session );
 
     if( mbedResult != 0 )
     {

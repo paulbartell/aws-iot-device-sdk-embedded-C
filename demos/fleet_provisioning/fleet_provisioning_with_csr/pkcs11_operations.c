@@ -41,14 +41,17 @@
 #include "core_pki_utils.h"
 #include "mbedtls_utils.h"
 
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
+
 /* MbedTLS include. */
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/entropy.h"
-#include "mbedtls/entropy_poll.h"
+#include "entropy_poll.h"
 #include "mbedtls/error.h"
 #include "mbedtls/oid.h"
 #include "mbedtls/pk.h"
-#include "mbedtls/pk_internal.h"
+#include "pk_internal.h"
+#include "pk_wrap.h"
 #include "mbedtls/sha256.h"
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/x509_csr.h"
@@ -243,13 +246,16 @@ static int extractEcPublicKey( CK_SESSION_HANDLE p11Session,
  * @param[in] pRng Unused.
  * @param[in] pRngContext Unused.
  */
-static int32_t privateKeySigningCallback( void * pContext,
+static int32_t privateKeySigningCallback( mbedtls_pk_context * pk,
                                           mbedtls_md_type_t mdAlg,
                                           const unsigned char * pHash,
                                           size_t hashLen,
                                           unsigned char * pSig,
+                                          size_t sigBufferSize,
                                           size_t * pSigLen,
-                                          int ( * pRng )( void *, unsigned char *, size_t ),
+                                          int32_t ( * pRng )( void *,
+                                                              unsigned char *,
+                                                              size_t ),
                                           void * pRngContext );
 
 /**
@@ -639,7 +645,7 @@ static CK_RV provisionPrivateKey( CK_SESSION_HANDLE session,
 
     mbedtls_pk_init( &mbedPkContext );
     mbedResult = mbedtls_pk_parse_key( &mbedPkContext, ( const uint8_t * ) privateKey,
-                                       privateKeyLength, NULL, 0 );
+                                       privateKeyLength, NULL, 0, randomCallback, &session );
 
     if( mbedResult != 0 )
     {
@@ -900,13 +906,16 @@ static int extractEcPublicKey( CK_SESSION_HANDLE p11Session,
 
 /*-----------------------------------------------------------*/
 
-static int32_t privateKeySigningCallback( void * pContext,
+static int32_t privateKeySigningCallback( mbedtls_pk_context * pk,
                                           mbedtls_md_type_t mdAlg,
                                           const unsigned char * pHash,
                                           size_t hashLen,
                                           unsigned char * pSig,
+                                          size_t sigBufferSize,
                                           size_t * pSigLen,
-                                          int ( * pRng )( void *, unsigned char *, size_t ),
+                                          int32_t ( * pRng )( void *,
+                                                              unsigned char *,
+                                                              size_t ),
                                           void * pRngContext )
 {
     CK_RV ret = CKR_OK;
@@ -917,7 +926,7 @@ static int32_t privateKeySigningCallback( void * pContext,
     CK_FUNCTION_LIST_PTR functionList = NULL;
 
     /* Unreferenced parameters. */
-    ( void ) ( pContext );
+    ( void ) ( pk );
     ( void ) ( pRng );
     ( void ) ( pRngContext );
     ( void ) ( mdAlg );

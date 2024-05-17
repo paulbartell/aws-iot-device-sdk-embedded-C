@@ -71,6 +71,7 @@ endif()
 target_include_directories(mbedtls
     PUBLIC
         "${ROOT_DIR}/libraries/3rdparty/mbedtls/include"
+        "${ROOT_DIR}/libraries/3rdparty/mbedtls/library"
         "${ROOT_DIR}/platform/posix/include"
 )
 

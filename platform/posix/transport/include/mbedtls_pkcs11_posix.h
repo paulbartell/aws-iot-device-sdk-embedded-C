@@ -66,11 +66,14 @@
 /* Standard includes. */
 #include <stdbool.h>
 
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
+
 /* MbedTLS includes. */
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/pk.h"
-#include "mbedtls/pk_internal.h"
+#include "pk_internal.h"
+#include "pk_wrap.h"
 
 /* Transport interface include. */
 #include "transport_interface.h"
@@ -85,7 +88,7 @@
  * See https://tls.mbed.org/api/debug_8h.html#a6629362e96b43725ace95c8ff01d9985
  * for valid values.
  */
-#define MBEDTLS_DEBUG_LOG_LEVEL    0
+#define MBEDTLS_DEBUG_LOG_LEVEL    4
 
 /**
  * @brief Context containing state for the MbedTLS and corePKCS11 based

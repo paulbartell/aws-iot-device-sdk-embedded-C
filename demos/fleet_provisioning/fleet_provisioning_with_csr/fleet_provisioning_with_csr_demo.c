@@ -501,25 +501,28 @@ int main( int argc,
         /* Initialize the PKCS #11 module */
         pkcs11ret = xInitializePkcs11Session( &p11Session );
 
-        if( pkcs11ret != CKR_OK )
-        {
-            LogError( ( "Failed to initialize PKCS #11." ) );
-            status = false;
-        }
-        else
-        {
-            /* Insert the claim credentials into the PKCS #11 module */
-            status = loadClaimCredentials( p11Session,
-                                           CLAIM_CERT_PATH,
-                                           pkcs11configLABEL_CLAIM_CERTIFICATE,
-                                           CLAIM_PRIVATE_KEY_PATH,
-                                           pkcs11configLABEL_CLAIM_PRIVATE_KEY );
+        extern void psa_crypto_init(void);
+        psa_crypto_init();
 
-            if( status == false )
-            {
-                LogError( ( "Failed to provision PKCS #11 with claim credentials." ) );
-            }
-        }
+        // if( pkcs11ret != CKR_OK )
+        // {
+        //     LogError( ( "Failed to initialize PKCS #11." ) );
+        //     status = false;
+        // }
+        // else
+        // {
+        //     /* Insert the claim credentials into the PKCS #11 module */
+        //     status = loadClaimCredentials( p11Session,
+        //                                    CLAIM_CERT_PATH,
+        //                                    pkcs11configLABEL_CLAIM_CERTIFICATE,
+        //                                    CLAIM_PRIVATE_KEY_PATH,
+        //                                    pkcs11configLABEL_CLAIM_PRIVATE_KEY );
+
+        //     if( status == false )
+        //     {
+        //         LogError( ( "Failed to provision PKCS #11 with claim credentials." ) );
+        //     }
+        // }
 
         /**** Connect to AWS IoT Core with provisioning claim credentials *****/
 
@@ -528,198 +531,199 @@ int main( int argc,
          * CreateCertificatefromCsr or CreateKeysAndCertificate.
          * In this demo we use CreateCertificatefromCsr. */
 
-        if( status == true )
-        {
-            /* Attempts to connect to the AWS IoT MQTT broker. If the
-             * connection fails, retries after a timeout. Timeout value will
-             * exponentially increase until maximum attempts are reached. */
-            LogInfo( ( "Establishing MQTT session with claim certificate..." ) );
-            status = EstablishMqttSession( provisioningPublishCallback,
-                                           p11Session,
-                                           pkcs11configLABEL_CLAIM_CERTIFICATE,
-                                           pkcs11configLABEL_CLAIM_PRIVATE_KEY );
+        // if( status == true )
+        // {
+        //     /* Attempts to connect to the AWS IoT MQTT broker. If the
+        //      * connection fails, retries after a timeout. Timeout value will
+        //      * exponentially increase until maximum attempts are reached. */
+        //     LogInfo( ( "Establishing MQTT session with claim certificate..." ) );
+        //     status = EstablishMqttSession( provisioningPublishCallback,
+        //                                    p11Session,
+        //                                    pkcs11configLABEL_CLAIM_CERTIFICATE,
+        //                                    pkcs11configLABEL_CLAIM_PRIVATE_KEY );
 
-            if( status == false )
-            {
-                LogError( ( "Failed to establish MQTT session." ) );
-            }
-            else
-            {
-                LogInfo( ( "Established connection with claim credentials." ) );
-                connectionEstablished = true;
-            }
-        }
+        //     if( status == false )
+        //     {
+        //         LogError( ( "Failed to establish MQTT session." ) );
+        //     }
+        //     else
+        //     {
+        //         LogInfo( ( "Established connection with claim credentials." ) );
+        //         connectionEstablished = true;
+        //     }
+        // }
 
-        /**** Call the CreateCertificateFromCsr API ***************************/
+        // /**** Call the CreateCertificateFromCsr API ***************************/
 
-        /* We use the CreateCertificatefromCsr API to obtain a client certificate
-         * for a key on the device by means of sending a certificate signing
-         * request (CSR). */
-        if( status == true )
-        {
-            /* Subscribe to the CreateCertificateFromCsr accepted and rejected
-             * topics. In this demo we use CBOR encoding for the payloads,
-             * so we use the CBOR variants of the topics. */
-            status = subscribeToCsrResponseTopics();
-        }
+        // /* We use the CreateCertificatefromCsr API to obtain a client certificate
+        //  * for a key on the device by means of sending a certificate signing
+        //  * request (CSR). */
+        // if( status == true )
+        // {
+        //     /* Subscribe to the CreateCertificateFromCsr accepted and rejected
+        //      * topics. In this demo we use CBOR encoding for the payloads,
+        //      * so we use the CBOR variants of the topics. */
+        //     status = subscribeToCsrResponseTopics();
+        // }
 
-        if( status == true )
-        {
-            /* Create a new key and CSR. */
-            status = generateKeyAndCsr( p11Session,
-                                        pkcs11configLABEL_DEVICE_PRIVATE_KEY_FOR_TLS,
-                                        pkcs11configLABEL_DEVICE_PUBLIC_KEY_FOR_TLS,
-                                        csr,
-                                        CSR_BUFFER_LENGTH,
-                                        &csrLength );
-        }
+        // if( status == true )
+        // {
+        //     /* Create a new key and CSR. */
+        //     status = generateKeyAndCsr( p11Session,
+        //                                 pkcs11configLABEL_DEVICE_PRIVATE_KEY_FOR_TLS,
+        //                                 pkcs11configLABEL_DEVICE_PUBLIC_KEY_FOR_TLS,
+        //                                 csr,
+        //                                 CSR_BUFFER_LENGTH,
+        //                                 &csrLength );
+        // }
 
-        if( status == true )
-        {
-            /* Create the request payload containing the CSR to publish to the
-             * CreateCertificateFromCsr APIs. */
-            status = generateCsrRequest( payloadBuffer,
-                                         NETWORK_BUFFER_SIZE,
-                                         csr,
-                                         csrLength,
-                                         &payloadLength );
-        }
+        // if( status == true )
+        // {
+        //     /* Create the request payload containing the CSR to publish to the
+        //      * CreateCertificateFromCsr APIs. */
+        //     status = generateCsrRequest( payloadBuffer,
+        //                                  NETWORK_BUFFER_SIZE,
+        //                                  csr,
+        //                                  csrLength,
+        //                                  &payloadLength );
+        // }
 
-        if( status == true )
-        {
-            /* Publish the CSR to the CreateCertificatefromCsr API. */
-            status = PublishToTopic( FP_CBOR_CREATE_CERT_PUBLISH_TOPIC,
-                                     FP_CBOR_CREATE_CERT_PUBLISH_LENGTH,
-                                     ( char * ) payloadBuffer,
-                                     payloadLength );
+        // if( status == true )
+        // {
+        //     /* Publish the CSR to the CreateCertificatefromCsr API. */
+        //     status = PublishToTopic( FP_CBOR_CREATE_CERT_PUBLISH_TOPIC,
+        //                              FP_CBOR_CREATE_CERT_PUBLISH_LENGTH,
+        //                              ( char * ) payloadBuffer,
+        //                              payloadLength );
 
-            if( status == false )
-            {
-                LogError( ( "Failed to publish to fleet provisioning topic: %.*s.",
-                            FP_CBOR_CREATE_CERT_PUBLISH_LENGTH,
-                            FP_CBOR_CREATE_CERT_PUBLISH_TOPIC ) );
-            }
-        }
+        //     if( status == false )
+        //     {
+        //         LogError( ( "Failed to publish to fleet provisioning topic: %.*s.",
+        //                     FP_CBOR_CREATE_CERT_PUBLISH_LENGTH,
+        //                     FP_CBOR_CREATE_CERT_PUBLISH_TOPIC ) );
+        //     }
+        // }
 
-        if( status == true )
-        {
-            /* Get the response to the CreateCertificatefromCsr request. */
-            status = waitForResponse();
-        }
+        // if( status == true )
+        // {
+        //     /* Get the response to the CreateCertificatefromCsr request. */
+        //     status = waitForResponse();
+        // }
 
-        if( status == true )
-        {
-            /* From the response, extract the certificate, certificate ID, and
-             * certificate ownership token. */
-            status = parseCsrResponse( payloadBuffer,
-                                       payloadLength,
-                                       certificate,
-                                       &certificateLength,
-                                       certificateId,
-                                       &certificateIdLength,
-                                       ownershipToken,
-                                       &ownershipTokenLength );
+        // if( status == true )
+        // {
+        //     /* From the response, extract the certificate, certificate ID, and
+        //      * certificate ownership token. */
+        //     status = parseCsrResponse( payloadBuffer,
+        //                                payloadLength,
+        //                                certificate,
+        //                                &certificateLength,
+        //                                certificateId,
+        //                                &certificateIdLength,
+        //                                ownershipToken,
+        //                                &ownershipTokenLength );
 
-            if( status == true )
-            {
-                LogInfo( ( "Received certificate with Id: %.*s", ( int ) certificateIdLength, certificateId ) );
-            }
-        }
+        //     if( status == true )
+        //     {
+        //         LogInfo( ( "Received certificate with Id: %.*s", ( int ) certificateIdLength, certificateId ) );
+        //     }
+        // }
 
-        if( status == true )
-        {
-            /* Save the certificate into PKCS #11. */
-            status = loadCertificate( p11Session,
-                                      certificate,
-                                      pkcs11configLABEL_DEVICE_CERTIFICATE_FOR_TLS,
-                                      certificateLength );
-        }
+        // if( status == true )
+        // {
+        //     /* Save the certificate into PKCS #11. */
+        //     status = loadCertificate( p11Session,
+        //                               certificate,
+        //                               pkcs11configLABEL_DEVICE_CERTIFICATE_FOR_TLS,
+        //                               certificateLength );
+        // }
 
-        if( status == true )
-        {
-            /* Unsubscribe from the CreateCertificateFromCsr topics. */
-            status = unsubscribeFromCsrResponseTopics();
-        }
+        // if( status == true )
+        // {
+        //     /* Unsubscribe from the CreateCertificateFromCsr topics. */
+        //     status = unsubscribeFromCsrResponseTopics();
+        // }
 
-        /**** Call the RegisterThing API **************************************/
+        // /**** Call the RegisterThing API **************************************/
 
-        /* We then use the RegisterThing API to activate the received certificate,
-         * provision AWS IoT resources according to the provisioning template, and
-         * receive device configuration. */
-        if( status == true )
-        {
-            /* Create the request payload to publish to the RegisterThing API. */
-            status = generateRegisterThingRequest( payloadBuffer,
-                                                   NETWORK_BUFFER_SIZE,
-                                                   ownershipToken,
-                                                   ownershipTokenLength,
-                                                   DEVICE_SERIAL_NUMBER,
-                                                   DEVICE_SERIAL_NUMBER_LENGTH,
-                                                   &payloadLength );
-        }
+        // /* We then use the RegisterThing API to activate the received certificate,
+        //  * provision AWS IoT resources according to the provisioning template, and
+        //  * receive device configuration. */
+        // if( status == true )
+        // {
+        //     /* Create the request payload to publish to the RegisterThing API. */
+        //     status = generateRegisterThingRequest( payloadBuffer,
+        //                                            NETWORK_BUFFER_SIZE,
+        //                                            ownershipToken,
+        //                                            ownershipTokenLength,
+        //                                            DEVICE_SERIAL_NUMBER,
+        //                                            DEVICE_SERIAL_NUMBER_LENGTH,
+        //                                            &payloadLength );
+        // }
 
-        if( status == true )
-        {
-            /* Subscribe to the RegisterThing response topics. */
-            status = subscribeToRegisterThingResponseTopics();
-        }
+        // if( status == true )
+        // {
+        //     /* Subscribe to the RegisterThing response topics. */
+        //     status = subscribeToRegisterThingResponseTopics();
+        // }
 
-        if( status == true )
-        {
-            /* Publish the RegisterThing request. */
-            status = PublishToTopic( FP_CBOR_REGISTER_PUBLISH_TOPIC( PROVISIONING_TEMPLATE_NAME ),
-                                     FP_CBOR_REGISTER_PUBLISH_LENGTH( PROVISIONING_TEMPLATE_NAME_LENGTH ),
-                                     ( char * ) payloadBuffer,
-                                     payloadLength );
+        // if( status == true )
+        // {
+        //     /* Publish the RegisterThing request. */
+        //     status = PublishToTopic( FP_CBOR_REGISTER_PUBLISH_TOPIC( PROVISIONING_TEMPLATE_NAME ),
+        //                              FP_CBOR_REGISTER_PUBLISH_LENGTH( PROVISIONING_TEMPLATE_NAME_LENGTH ),
+        //                              ( char * ) payloadBuffer,
+        //                              payloadLength );
 
-            if( status == false )
-            {
-                LogError( ( "Failed to publish to fleet provisioning topic: %.*s.",
-                            FP_CBOR_REGISTER_PUBLISH_LENGTH( PROVISIONING_TEMPLATE_NAME_LENGTH ),
-                            FP_CBOR_REGISTER_PUBLISH_TOPIC( PROVISIONING_TEMPLATE_NAME ) ) );
-            }
-        }
+        //     if( status == false )
+        //     {
+        //         LogError( ( "Failed to publish to fleet provisioning topic: %.*s.",
+        //                     FP_CBOR_REGISTER_PUBLISH_LENGTH( PROVISIONING_TEMPLATE_NAME_LENGTH ),
+        //                     FP_CBOR_REGISTER_PUBLISH_TOPIC( PROVISIONING_TEMPLATE_NAME ) ) );
+        //     }
+        // }
 
-        if( status == true )
-        {
-            /* Get the response to the RegisterThing request. */
-            status = waitForResponse();
-        }
+        // if( status == true )
+        // {
+        //     /* Get the response to the RegisterThing request. */
+        //     status = waitForResponse();
+        // }
 
-        if( status == true )
-        {
-            /* Extract the Thing name from the response. */
-            thingNameLength = MAX_THING_NAME_LENGTH;
-            status = parseRegisterThingResponse( payloadBuffer,
-                                                 payloadLength,
-                                                 thingName,
-                                                 &thingNameLength );
+        // if( status == true )
+        // {
+        //     /* Extract the Thing name from the response. */
+        //     thingNameLength = MAX_THING_NAME_LENGTH;
+        //     status = parseRegisterThingResponse( payloadBuffer,
+        //                                          payloadLength,
+        //                                          thingName,
+        //                                          &thingNameLength );
 
-            if( status == true )
-            {
-                LogInfo( ( "Received AWS IoT Thing name: %.*s", ( int ) thingNameLength, thingName ) );
-            }
-        }
+        //     if( status == true )
+        //     {
+        //         LogInfo( ( "Received AWS IoT Thing name: %.*s", ( int ) thingNameLength, thingName ) );
+        //     }
+        // }
 
-        if( status == true )
-        {
-            /* Unsubscribe from the RegisterThing topics. */
-            unsubscribeFromRegisterThingResponseTopics();
-        }
+        // if( status == true )
+        // {
+        //     /* Unsubscribe from the RegisterThing topics. */
+        //     unsubscribeFromRegisterThingResponseTopics();
+        // }
 
-        /**** Disconnect from AWS IoT Core ************************************/
+        // /**** Disconnect from AWS IoT Core ************************************/
 
-        /* As we have completed the provisioning workflow, we disconnect from
-         * the connection using the provisioning claim credentials. We will
-         * establish a new MQTT connection with the newly provisioned
-         * credentials. */
-        if( connectionEstablished == true )
-        {
-            DisconnectMqttSession();
-            connectionEstablished = false;
-        }
+        // /* As we have completed the provisioning workflow, we disconnect from
+        //  * the connection using the provisioning claim credentials. We will
+        //  * establish a new MQTT connection with the newly provisioned
+        //  * credentials. */
+        // if( connectionEstablished == true )
+        // {
+        //     DisconnectMqttSession();
+        //     connectionEstablished = false;
+        // }
 
         /**** Connect to AWS IoT Core with provisioned certificate ************/
+        status = true;
 
         if( status == true )
         {

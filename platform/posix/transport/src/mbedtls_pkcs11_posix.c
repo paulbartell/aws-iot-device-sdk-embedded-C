@@ -20,6 +20,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
+
 /* Standard includes. */
 #include <string.h>
 #include <assert.h>
@@ -203,13 +205,16 @@ static bool initializeClientKeys( MbedtlsPkcs11Context_t * pContext,
  *
  * @return Zero on success.
  */
-static int32_t privateKeySigningCallback( void * pContext,
+static int32_t privateKeySigningCallback( mbedtls_pk_context * pk,
                                           mbedtls_md_type_t mdAlg,
                                           const unsigned char * pHash,
                                           size_t hashLen,
                                           unsigned char * pSig,
+                                          size_t sigBufferSize,
                                           size_t * pSigLen,
-                                          int32_t ( * pRng )( void *, unsigned char *, size_t ),
+                                          int32_t ( * pRng )( void *,
+                                                              unsigned char *,
+                                                              size_t ),
                                           void * pRngContext );
 
 /*-----------------------------------------------------------*/
@@ -662,11 +667,12 @@ static bool initializeClientKeys( MbedtlsPkcs11Context_t * pContext,
 
 /*-----------------------------------------------------------*/
 
-static int32_t privateKeySigningCallback( void * pContext,
+static int32_t privateKeySigningCallback( mbedtls_pk_context * pk,
                                           mbedtls_md_type_t mdAlg,
                                           const unsigned char * pHash,
                                           size_t hashLen,
                                           unsigned char * pSig,
+                                          size_t sigBufferSize,
                                           size_t * pSigLen,
                                           int32_t ( * pRng )( void *,
                                                               unsigned char *,
@@ -675,7 +681,7 @@ static int32_t privateKeySigningCallback( void * pContext,
 {
     CK_RV ret = CKR_OK;
     int32_t result = 0;
-    MbedtlsPkcs11Context_t * pMbedtlsPkcs11Context = ( MbedtlsPkcs11Context_t * ) pContext;
+    MbedtlsPkcs11Context_t * pMbedtlsPkcs11Context;
     CK_MECHANISM mech = { 0 };
     /* Buffer big enough to hold data to be signed. */
     CK_BYTE toBeSigned[ 256 ];
@@ -686,9 +692,11 @@ static int32_t privateKeySigningCallback( void * pContext,
     ( void ) ( pRngContext );
     ( void ) ( mdAlg );
 
-    assert( pContext != NULL );
+    assert( pk != NULL );
     assert( pHash != NULL );
     assert( pSigLen != NULL );
+
+    pMbedtlsPkcs11Context = ( MbedtlsPkcs11Context_t * ) pk->pk_ctx;
 
     /* Sanity check buffer length. */
     if( hashLen > sizeof( toBeSigned ) )
